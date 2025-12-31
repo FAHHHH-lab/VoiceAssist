@@ -35,6 +35,8 @@ gh repo clone lilcloudcoder/VoiceAssist
 cd VoiceAssist
 
 # Install dependencies (requires psutil, screen_brightness_control, ddgs, etc.)
+python3.11 -m venv env # I HIGHLY RECOMMEND PYTHON3.11
+source env/bin/activate
 pip install -r libs.txt
 
 # Set your API Key
@@ -43,6 +45,7 @@ export GEMINI_API_KEY="<YOUR_API_KEY_HERE>"
 # Run the assistant
 python main.py
 ```
+
 
 ### Dependencies
 -   `google.genai`, `SpeechRecognition`, `pyttsx3`, `rich`, `pyaudio`
@@ -89,5 +92,8 @@ You will be prompted to select a mode:
 -   **Microphone**: Requires `pyaudio`. If installation fails, install `portaudio` via your package manager (e.g., `brew install portaudio`).
 -   **Permissions**: MacOS may prompt for **"System Events"** control permissions on the first run of system commands (like volume/sleep). Allow these for full functionality.
 
+
+### Features that are only supported for macOS and linux : SetVolume
+### Highly recommend ≤ python@v3.11 / ≥ python@3.9.*
 ---
 Built with ❤️ by LilCloudCoder.
