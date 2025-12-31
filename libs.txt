@@ -3,3 +3,6 @@ pyttsx3
 google.genai
 rich
 pyaudio
+psutil
+screen_brightness_control
+ddgs

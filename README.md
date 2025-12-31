@@ -1,49 +1,78 @@
 # VoiceAssist
 
-VoiceAssist is a personal AI voice assistant built in Python. It listens via your microphone, responds using Google Gemini, and can open websites, answer quick queries (time/date/search), and chat — like a mini “Jarvis” running locally.
+VoiceAssist is a personal AI voice assistant built in Python. It acts as a local "Jarvis", capable of controlling your system, searching the web, and chatting via Google Gemini. It supports both **Voice** and **Text (CLI)** modes.
 
 ---
 
 ## Features
 
--  **Wake Word Detection** – Only responds when you say `"jarvis"` (case‑insensitive).
--  **Voice Command Recognition** – Powered by `SpeechRecognition` with ambient‑noise calibration.
--  **Text‑to‑Speech** – Speaks responses with `pyttsx3` (trimmed to avoid very long blocking reads).
--  **Web Shortcuts** – Say `open <site>` for many popular sites (Google, YouTube, GitHub, Reddit, etc.).
--  **Quick Utilities** – `search for <query>`, "what's the time", "what's the date".
--  **AI‑Powered Replies** – Uses Google Gemini with a concise, voice‑friendly persona.
--  **Robustness** – Graceful handling of missing API key, network hiccups (with retries/backoff),
-   and clearer console output using `rich`.
+### 🤖 AI Core
+-   **Conversation**: Powered by Google Gemini (`gemini-2.5-flash`).
+-   **Persona**: "Vyom" - a helpful, professional Gen Alpha assistant.
+
+### 💻 System Control
+-   **Power**: Shutdown, Restart, Sleep (with safety confirmation).
+-   **Hardware Stats**: Check Battery level, CPU usage, and Memory usage.
+-   **Adjustments**: Control System Volume and Screen Brightness.
+-   **Apps**: Launch applications (e.g., "Open Calculator").
+
+### 🌐 Connectivity
+-   **Web Search**: Real-time privacy-focused search using DuckDuckGo (`ddgs`).
+-   **Web Shortcuts**: Voice commands to open popular sites (YouTube, GitHub, Reddit, etc.).
+
+### 🎙️ Modes
+-   **Voice Mode**: Hands-free interactions with `SpeechRecognition` and `pyttsx3` TTS.
+    -   Wake Word: `"jarvis"`
+-   **Text Mode (CLI)**: Fast, silent keyboard interaction.
 
 ---
 
 ## Installation
 
 ```bash
+# Clone the repository
 gh repo clone lilcloudcoder/VoiceAssist
 cd VoiceAssist
+
+# Install dependencies (requires psutil, screen_brightness_control, ddgs, etc.)
 pip install -r libs.txt
+
+# Set your API Key
 export GEMINI_API_KEY="<YOUR_API_KEY_HERE>"
+
+# Run the assistant
 python main.py
 ```
 
-### Notes
-- Replace `<YOUR_API_KEY_HERE>` with your real Gemini API key. Generate one at: https://aistudio.google.com/api-keys
-- Microphone access requires `pyaudio` (already in `libs.txt`). If install fails on your OS, consult your package manager for portaudio.
+### Dependencies
+-   `google.genai`, `SpeechRecognition`, `pyttsx3`, `rich`, `pyaudio`
+-   `psutil` (System Monitoring)
+-   `screen_brightness_control` (Display)
+-   `ddgs` (Web Search)
 
 ---
 
 ## Usage
-- Say: `jarvis open youtube`
-- Say: `jarvis search for best python tutorials`
-- Say: `jarvis what's the time` or `jarvis what's the date`
-- Say: `jarvis` …then your question for AI.
-- Exit: say `exit/quit/shutdown` (with or without wake word), or press Ctrl+C.
 
-### Config (in `main.py`)
-- `WAKE_WORD` – default: `"jarvis"`
-- `MODEL_NAME` – default: `"gemini-2.5-flash"`
-- `PHRASE_TIME_LIMIT`, `LISTEN_TIMEOUT` – tune listening behavior.
+Run the script:
+```bash
+python main.py
+```
+
+You will be prompted to select a mode:
+-   **T**: Text Mode (CLI). Type commands silently.
+-   **V**: Voice Mode. Speak to Jarvis.
+
+### Example Commands
+-   **Search**: *"Search for the latest space news"*
+-   **System**: *"What is my battery level?"*, *"Set brightness to 80%"*
+-   **Power**: *"Restart the system"* (Agent will ask for confirmation: *"Yes, do it"*)
+-   **Apps**: *"Open Spotify"*
+-   **Chat**: *"Tell me a joke"*
+
+### Notes
+-   **Microphone**: Requires `pyaudio`. If installation fails, install `portaudio` via your package manager (e.g., `brew install portaudio`).
+-   **Permissions**: MacOS may prompt for **"System Events"** control permissions on the first run of system commands (like volume/sleep). Allow these for full functionality.
 
 ---
-Thanks for visiting!
+Built with ❤️ by LilCloudCoder.

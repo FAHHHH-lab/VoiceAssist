@@ -5,96 +5,86 @@ import google.genai as genai
 from google.genai import types
 from rich.console import Console
 from rich.markdown import Markdown
-import webbrowser
+from system_tools import SystemTools
 
 console = Console()
 
 # Initialize the TTS engine once
 engine = pyttsx3.init()
 
+# Global config for TTS
+TTS_ENABLED = True
+
 def speak(text: str):
-    engine.say(text)
-    engine.runAndWait()
-
-
+    if TTS_ENABLED:
+        engine.say(text)
+        engine.runAndWait()
 
 def process_command(cmd: str):
-    # Browser links dictionary
-    links = {
-        "google": "https://google.com",
-        "youtube": "https://youtube.com",
-        "github": "https://github.com",
-        "chat gpt": "https://chatgpt.com",
-        "gmail": "https://mail.google.com",
-        "maps": "https://maps.google.com",
-        "x": "https://x.com",
-        "instagram": "https://instagram.com",
-        "facebook": "https://facebook.com",
-        "linkedin": "https://linkedin.com",
-        "reddit": "https://reddit.com",
-        "stackoverflow": "https://stackoverflow.com",
-        "wikipedia": "https://wikipedia.org",
-        "amazon": "https://amazon.com",
-        "flipkart": "https://flipkart.com",
-        "spotify": "https://spotify.com",
-        "netflix": "https://netflix.com",
-        "openai": "https://openai.com",
-        "apple": "https://apple.com",
-        "microsoft": "https://microsoft.com",
-        "bing": "https://bing.com",
-        "discord": "https://discord.com",
-        "notion": "https://notion.so",
-        "slack": "https://slack.com",
-        "whatsapp": "https://web.whatsapp.com",
-        "telegram": "https://web.telegram.org",
-        "news": "https://news.google.com",
-        "weather": "https://weather.com",
-        "coinmarketcap": "https://coinmarketcap.com",
-        "tradingview": "https://tradingview.com",
-        "python docs": "https://docs.python.org/3/",
-        "github trending": "https://github.com/trending",
-        "vs code": "https://code.visualstudio.com",
-        "fleet": "https://www.jetbrains.com/fleet/",
-        "freepik": "https://freepik.com/",
-    }
-
-    for key, url in links.items():
-        if f"open {key}" in cmd:
-            webbrowser.open(url)
-            return
+    sys_tools = SystemTools()
+    
+    # Define tool mapping for system tools
+    # Note: Google Search is handled natively by Gemini config, not manual mapping in this loop style usually,
+    # but the python client handles it if we pass the Tool object.
+    
+    # We combine system tools with Google Search
+    tools_list = [
+        sys_tools.shutdown_system,
+        sys_tools.restart_system,
+        sys_tools.sleep_system,
+        sys_tools.get_battery_status,
+        sys_tools.get_system_stats,
+        sys_tools.set_brightness,
+        sys_tools.set_volume,
+        sys_tools.open_app,
+        sys_tools.open_website,
+        sys_tools.web_search,
+    ]
 
     client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
     model = "gemini-2.5-flash"
-    user_content = types.Content(
-        role="user",
-        parts=[types.Part.from_text(text=cmd)],
-    )
-
+    
     persona = [
         "You're Vyom, a helpful Gen Alpha assistant.",
         "Always call the user 'Sir'.",
-        "You speak professional, talkative Gen Alpha style, markdown format only. Keep your responses extremely extremely short because you're a voice ai assistant like tl;dr tone and style"
+        "You speak professional, talkative Gen Alpha style, markdown format only. Keep your responses extremely extremely short like a voice assistant.",
+        "You have access to system tools AND a web search tool. USE THEM freely.",
+        "If asked to search or for info you don't know, YOU MUST USE the 'web_search' tool. Do not just say you will search.",
+        "After searching, summarize the results for the user.",
+        "CRITICAL: For 'shutdown_system' and 'restart_system', you MUST ask for explicit confirmation first if the user hasn't provided it in the current turn.",
     ]
 
     config = types.GenerateContentConfig(
         system_instruction=persona,
-        tools=[types.Tool(google_search=types.GoogleSearch())]
+        tools=tools_list,
+        automatic_function_calling=types.AutomaticFunctionCallingConfig(
+             disable=False,
+             maximum_remote_calls=3
+        ), 
     )
 
-    response = ""
-    for chunk in client.models.generate_content_stream(
-        model=model,
-        contents=[user_content],
-        config=config,
-    ):
-        if chunk.text:
-            response += chunk.text
+    try:
+        chat = client.chats.create(
+            model=model,
+            config=config,
+            history=[]
+        )
+        
+        # Send message
+        response = chat.send_message(cmd)
+        
+        # Text response
+        if response.text:
+            console.rule("[bold cyan]BOT")
+            console.print(Markdown(response.text))
+            speak(response.text)
+            
+    except Exception as e:
+        console.print(f"[bold red]AI Error:[/bold red] {e}")
+        if TTS_ENABLED:
+            speak("I encountered an error processing that request.")
 
-    if response.strip():
-        console.rule("[bold cyan]Vyom's Response")
-        console.print(Markdown(response))
-        speak(response)
 
 def listen_continuously():
     r = sr.Recognizer()
@@ -121,7 +111,7 @@ def listen_continuously():
 
             # Wake-word check
             if command.startswith(wake_word):
-                speak("Yes Sir, I'm at your service")
+                speak("Yes Sir")
                 # Remove wake word from command
                 actual_cmd = command.replace(wake_word, "", 1).strip()
 
@@ -147,5 +137,35 @@ def listen_continuously():
         except Exception as e:
             console.print(f"[bold red]Error:[/bold red] {e}")
 
+def start_text_mode():
+    global TTS_ENABLED
+    TTS_ENABLED = False # Disable TTS for text mode
+    console.print("[green]Entered Text Mode. Type 'exit' to quit.[/green]")
+    while True:
+        try:
+            cmd = console.input("[bold magenta]>>> [/bold magenta]")
+            if cmd.lower() in ["exit", "quit", "shutdown"]:
+                break
+            if not cmd.strip():
+                continue
+            process_command(cmd)
+        except KeyboardInterrupt:
+            break
+        except Exception as e:
+            console.print(f"[bold red]Error:[/bold red] {e}")
+
 if __name__ == "__main__":
-    listen_continuously()
+    try:
+        console.rule("[bold yellow]VoiceAssist Configuration")
+        mode = console.input("[bold cyan]Select Mode (T for Text / V for Voice): [/bold cyan]").strip().upper()
+        
+        if mode == 'T':
+            start_text_mode()
+        elif mode == 'V':
+            listen_continuously()
+        else:
+            console.print("[red]Invalid mode selected. Defaulting to Voice.[/red]")
+            listen_continuously()
+            
+    except KeyboardInterrupt:
+        print("\nExiting...")
