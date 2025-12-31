@@ -1,1 +1,151 @@
-import osimport timeimport webbrowserfrom datetime import datetimefrom typing import Dict, Optionalimport pyttsx3import speech_recognition as srimport google.genai as genaifrom google.genai import typesfrom rich.console import Consolefrom rich.markdown import Markdown# --------------------------# Configuration & Constants# --------------------------APP_NAME = "VoiceAssist"WAKE_WORD = "jarvis"  # keep lower-case for normalizationMODEL_NAME = "gemini-2.5-flash"LISTEN_TIMEOUT = 2  # seconds to wait for speech startPHRASE_TIME_LIMIT = 6  # max seconds per utteranceMAX_TTS_CHARS = 800  # avoid super-long blocking TTSGENAI_RETRIES = 3GENAI_BACKOFF = 1.5# Popular links for quick open commandLINKS: Dict[str, str] = {    "google": "https://google.com",    "youtube": "https://youtube.com",    "github": "https://github.com",    "chat gpt": "https://chatgpt.com",    "gmail": "https://mail.google.com",    "maps": "https://maps.google.com",    "x": "https://x.com",    "instagram": "https://instagram.com",    "facebook": "https://facebook.com",    "linkedin": "https://linkedin.com",    "reddit": "https://reddit.com",    "stackoverflow": "https://stackoverflow.com",    "wikipedia": "https://wikipedia.org",    "amazon": "https://amazon.com",    "flipkart": "https://flipkart.com",    "spotify": "https://spotify.com",    "netflix": "https://netflix.com",    "openai": "https://openai.com",    "apple": "https://apple.com",    "microsoft": "https://microsoft.com",    "bing": "https://bing.com",    "discord": "https://discord.com",    "notion": "https://notion.so",    "slack": "https://slack.com",    "whatsapp": "https://web.whatsapp.com",    "telegram": "https://web.telegram.org",    "news": "https://news.google.com",    "weather": "https://weather.com",    "coinmarketcap": "https://coinmarketcap.com",    "tradingview": "https://tradingview.com",    "python docs": "https://docs.python.org/3/",    "github trending": "https://github.com/trending",    "vs code": "https://code.visualstudio.com",    "fleet": "https://www.jetbrains.com/fleet/",    "freepik": "https://freepik.com/",}console = Console()# Initialize the TTS engine onceengine = pyttsx3.init()# --------------------------# Utility functions# --------------------------def normalize(text: str) -> str:    return text.lower().strip()def speak(text: str):    # Trim very long responses to avoid blocking TTS for minutes    msg = text if len(text) <= MAX_TTS_CHARS else text[: MAX_TTS_CHARS] + "..."    engine.say(msg)    engine.runAndWait()def has_wake_word(text: str) -> bool:    return normalize(text).startswith(WAKE_WORD)def strip_wake_word(text: str) -> str:    t = normalize(text)    return t.replace(WAKE_WORD, "", 1).strip() if t.startswith(WAKE_WORD) else tdef open_known_link(cmd: str) -> bool:    # Supports: "open <key>" commands    for key, url in LINKS.items():        if f"open {key}" in cmd:            webbrowser.open(url)            speak(f"Opening {key}")            return True    return Falsedef handle_local_commands(cmd: str) -> Optional[str]:    # Returns a short response if handled locally, else None to fall back to AI    if any(w in cmd for w in ["exit", "quit", "shutdown", "close assistant"]):        # Handled by caller to stop loop        return "__EXIT__"    if cmd.startswith("open ") and open_known_link(cmd):        return "Done, Sir."    if cmd.startswith("search for "):        q = cmd.replace("search for ", "", 1).strip()        if q:            webbrowser.open(f"https://www.google.com/search?q={q}")            return f"Searching for {q}"    if "time" in cmd:        now = datetime.now().strftime("%I:%M %p")        return f"It's {now}, Sir."    if any(k in cmd for k in ["date", "day"]):        today = datetime.now().strftime("%A, %B %d, %Y")        return f"Today is {today}."    return None# --------------------------# AI generation# --------------------------def generate_ai_response(prompt: str) -> str:    api_key = os.environ.get("GEMINI_API_KEY")    if not api_key:        return (            "Sir, the Gemini API key is missing. Set environment variable `GEMINI_API_KEY` "            "before using AI features."        )    client = genai.Client(api_key=api_key)    persona = [        "You're Jarvis, a helpful Gen Alpha assistant.",        "Always call the user 'Sir'.",        "You speak professional, talkative Gen Alpha style, markdown format only. Keep your responses extremely extremely short because you're a voice ai assistant like tl;dr tone and style",    ]    user_content = types.Content(        role="user",        parts=[types.Part.from_text(text=prompt)],    )    config = types.GenerateContentConfig(        system_instruction=persona,        tools=[types.Tool(google_search=types.GoogleSearch())],    )    last_error: Optional[Exception] = None    for attempt in range(1, GENAI_RETRIES + 1):        try:            response_text = ""            for chunk in client.models.generate_content_stream(                model=MODEL_NAME,                contents=[user_content],                config=config,            ):                if chunk.text:                    response_text += chunk.text            return response_text.strip()        except Exception as e:  # network or quota, etc.            last_error = e            if attempt < GENAI_RETRIES:                time.sleep(GENAI_BACKOFF ** attempt)            else:                break    return f"Apologies Sir, I couldn't reach Gemini: {last_error}"# --------------------------# Command processing# --------------------------def process_command(cmd: str):    cmd = normalize(cmd)    # Try local, fast actions first    local = handle_local_commands(cmd)    if local is not None:        if local == "__EXIT__":            raise SystemExit        console.rule("[bold cyan]Jarvis")        console.print(Markdown(local))        speak(local)        return    # Fallback to AI    response = generate_ai_response(cmd)    if response:        console.rule("[bold cyan]Jarvis")        console.print(Markdown(response))        speak(response)# --------------------------# Main loop# --------------------------def listen_continuously():    r = sr.Recognizer()    mic = sr.Microphone()    with mic as source:        console.print("[yellow]Calibrating microphone...[/yellow]")        r.adjust_for_ambient_noise(source, duration=1)        speak("Jarvis online, waiting for your call.")    while True:        try:            with mic as source:                console.print("[green]Listening...[/green]")                audio = r.listen(source, phrase_time_limit=PHRASE_TIME_LIMIT, timeout=LISTEN_TIMEOUT)            try:                command = normalize(r.recognize_google(audio))  # type: ignore            except sr.UnknownValueError:                console.print("[blue]Could not understand audio[/blue]")                continue            console.print(f"[bold magenta]You said:[/bold magenta] {command}")            # Exit if explicitly asked (without wake word)            if command in {"exit", "quit", "shutdown"}:                speak("Shutting down")                break            # Wake-word check            if has_wake_word(command):                speak("Yes Sir, I'm at your service")                actual_cmd = strip_wake_word(command)                if actual_cmd:                    try:                        process_command(actual_cmd)                    except SystemExit:                        speak("Shutting down")                        break                else:                    console.print("[cyan]Awaiting your command...[/cyan]")            else:                console.print("[dim]Ignored (no wake word detected)[/dim]")        except sr.RequestError:            speak("Recognition service unavailable")            break        except KeyboardInterrupt:            speak("Shutting down")            break        except Exception as e:            console.print(f"[bold red]Error:[/bold red] {e}")if __name__ == "__main__":    listen_continuously()
+import speech_recognition as sr
+import pyttsx3
+import os
+import google.genai as genai
+from google.genai import types
+from rich.console import Console
+from rich.markdown import Markdown
+import webbrowser
+
+console = Console()
+
+# Initialize the TTS engine once
+engine = pyttsx3.init()
+
+def speak(text: str):
+    engine.say(text)
+    engine.runAndWait()
+
+
+
+def process_command(cmd: str):
+    # Browser links dictionary
+    links = {
+        "google": "https://google.com",
+        "youtube": "https://youtube.com",
+        "github": "https://github.com",
+        "chat gpt": "https://chatgpt.com",
+        "gmail": "https://mail.google.com",
+        "maps": "https://maps.google.com",
+        "x": "https://x.com",
+        "instagram": "https://instagram.com",
+        "facebook": "https://facebook.com",
+        "linkedin": "https://linkedin.com",
+        "reddit": "https://reddit.com",
+        "stackoverflow": "https://stackoverflow.com",
+        "wikipedia": "https://wikipedia.org",
+        "amazon": "https://amazon.com",
+        "flipkart": "https://flipkart.com",
+        "spotify": "https://spotify.com",
+        "netflix": "https://netflix.com",
+        "openai": "https://openai.com",
+        "apple": "https://apple.com",
+        "microsoft": "https://microsoft.com",
+        "bing": "https://bing.com",
+        "discord": "https://discord.com",
+        "notion": "https://notion.so",
+        "slack": "https://slack.com",
+        "whatsapp": "https://web.whatsapp.com",
+        "telegram": "https://web.telegram.org",
+        "news": "https://news.google.com",
+        "weather": "https://weather.com",
+        "coinmarketcap": "https://coinmarketcap.com",
+        "tradingview": "https://tradingview.com",
+        "python docs": "https://docs.python.org/3/",
+        "github trending": "https://github.com/trending",
+        "vs code": "https://code.visualstudio.com",
+        "fleet": "https://www.jetbrains.com/fleet/",
+        "freepik": "https://freepik.com/",
+    }
+
+    for key, url in links.items():
+        if f"open {key}" in cmd:
+            webbrowser.open(url)
+            return
+
+    client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+
+    model = "gemini-2.5-flash"
+    user_content = types.Content(
+        role="user",
+        parts=[types.Part.from_text(text=cmd)],
+    )
+
+    persona = [
+        "You're Vyom, a helpful Gen Alpha assistant.",
+        "Always call the user 'Sir'.",
+        "You speak professional, talkative Gen Alpha style, markdown format only. Keep your responses extremely extremely short because you're a voice ai assistant like tl;dr tone and style"
+    ]
+
+    config = types.GenerateContentConfig(
+        system_instruction=persona,
+        tools=[types.Tool(google_search=types.GoogleSearch())]
+    )
+
+    response = ""
+    for chunk in client.models.generate_content_stream(
+        model=model,
+        contents=[user_content],
+        config=config,
+    ):
+        if chunk.text:
+            response += chunk.text
+
+    if response.strip():
+        console.rule("[bold cyan]Vyom's Response")
+        console.print(Markdown(response))
+        speak(response)
+
+def listen_continuously():
+    r = sr.Recognizer()
+    mic = sr.Microphone()
+    wake_word = "jarvis"
+
+    with mic as source:
+        console.print("[yellow]Calibrating microphone...[/yellow]")
+        r.adjust_for_ambient_noise(source, duration=1)
+        speak("Jarvis online, waiting for your call.")
+
+    while True:
+        try:
+            with mic as source:
+                console.print("[green]Listening...[/green]")
+                audio = r.listen(source,phrase_time_limit=5,timeout=2)
+
+            command = r.recognize_google(audio).lower().strip()  # type: ignore
+            console.print(f"[bold magenta]You said:[/bold magenta] {command}")
+
+            if command == "exit":
+                speak("Shutting down")
+                break
+
+            # Wake-word check
+            if command.startswith(wake_word):
+                speak("Yes Sir, I'm at your service")
+                # Remove wake word from command
+                actual_cmd = command.replace(wake_word, "", 1).strip()
+
+                if actual_cmd:
+                    process_command(actual_cmd)
+                else:
+                    console.print("[cyan]Awaiting your command...[/cyan]")
+
+            else:
+                console.print("[dim]Ignored (no wake word detected)[/dim]")
+
+        except sr.UnknownValueError:
+            console.print("[blue]Could not understand audio[/blue]")
+
+        except sr.RequestError:
+            speak("Recognition service unavailable")
+            break
+
+        except KeyboardInterrupt:
+            speak("Shutting down")
+            break
+
+        except Exception as e:
+            console.print(f"[bold red]Error:[/bold red] {e}")
+
+if __name__ == "__main__":
+    listen_continuously()
