@@ -53,9 +53,24 @@ python main.py
 ---
 
 ## Usage
+Generate a API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
 
 Run the script:
 ```bash
+# Clone the repository
+git clone https://github.com/LilCloudCoder/VoiceAssist.git
+
+# Create and activate a virtual environment
+python3.11 -m venv env
+source env/bin/activate
+
+# Install dependencies
+pip install -r libs.txt
+
+# Set your API Key
+export GEMINI_API_KEY="<YOUR_API_KEY_HERE>"
+
+# Run the assistant
 python main.py
 ```
 
