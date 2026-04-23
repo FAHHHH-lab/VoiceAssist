@@ -31,7 +31,7 @@ VoiceAssist is a personal AI voice assistant built in Python. It acts as a local
 
 ```bash
 # Clone the repository
-gh repo clone lilcloudcoder/VoiceAssist
+gh repo clone FAHHHH-lab/VoiceAssist
 cd VoiceAssist
 
 # Install dependencies (requires psutil, screen_brightness_control, ddgs, etc.)
