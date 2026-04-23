@@ -1,80 +1,104 @@
-# VoiceAssist
+# FAHHST-Assistant 
 
-VoiceAssist is a personal AI voice assistant built in Python. It acts as a local "Jarvis", capable of controlling your system, searching the web, and chatting via Google Gemini. It supports both **Voice** and **Text (CLI)** modes.
+FAHHST-Assistant is a personal AI voice system built in Python.
+Local. fast. no nonsense.
 
----
-
-## Features
-
-### 🤖 AI Core
--   **Conversation**: Powered by Google Gemini (`gemini-2.5-flash`).
--   **Persona**: "Vyom" - a helpful, professional Gen Alpha assistant.
-
-### 💻 System Control
--   **Power**: Shutdown, Restart, Sleep (with safety confirmation).
--   **Hardware Stats**: Check Battery level, CPU usage, and Memory usage.
--   **Adjustments**: Control System Volume and Screen Brightness.
--   **Apps**: Launch applications (e.g., "Open Calculator").
-
-### 🌐 Connectivity
--   **Web Search**: Real-time privacy-focused search using DuckDuckGo (`ddgs`).
--   **Web Shortcuts**: Voice commands to open popular sites (YouTube, GitHub, Reddit, etc.).
-
-### 🎙️ Modes
--   **Voice Mode**: Hands-free interactions with `SpeechRecognition` and `pyttsx3` TTS.
-    -   Wake Word: `"jarvis"`
--   **Text Mode (CLI)**: Fast, silent keyboard interaction.
+controls your machine • searches the web • talks via Gemini
+voice or CLI — your choice
 
 ---
 
-## Installation
+## ⚡ FEATURES
 
-```bash
-# Clone the repository
+### 🤖 AI CORE
+
+* **Conversation Engine** — powered by Gemini (`gemini-2.5-flash`)
+* **Persona** — *Vyom*: sharp, helpful, no fluff
+
+### 💻 SYSTEM CONTROL
+
+* **Power Commands** — shutdown / restart / sleep (with confirmation)
+* **System Stats** — battery • CPU • memory
+* **Controls** — volume + brightness
+* **App Launcher** — open anything (calculator, spotify, etc.)
+
+### 🌐 CONNECTIVITY
+
+* **Web Search** — real-time via DuckDuckGo (`ddgs`)
+* **Shortcuts** — instant access (YouTube, GitHub, Reddit…)
+
+### 🎙️ MODES
+
+* **Voice Mode** — hands-free (`SpeechRecognition` + `pyttsx3`)
+
+  * wake word: `jarvis`
+* **Text Mode (CLI)** — fast, silent, direct
+
+---
+
+## 🚀 INSTALL
+
+clone + setup:
+
 gh repo clone FAHHHH-lab/VoiceAssist
 cd VoiceAssist
 
-# Install dependencies (requires psutil, screen_brightness_control, ddgs, etc.)
-python3.11 -m venv env # I HIGHLY RECOMMEND PYTHON3.11
+python3.11 -m venv env
 source env/bin/activate
 pip install -r libs.txt
-```
 
-
-### Dependencies
--   `google.genai`, `SpeechRecognition`, `pyttsx3`, `rich`, `pyaudio`
--   `psutil` (System Monitoring)
--   `screen_brightness_control` (Display)
--   `ddgs` (Web Search)
+> use Python 3.11 for best stability
 
 ---
 
-## Usage
-Generate a API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+## 📦 DEPENDENCIES
 
-Run the script:
-```bash
+* google.genai • SpeechRecognition • pyttsx3 • rich • pyaudio
+* psutil (system stats)
+* screen_brightness_control (display)
+* ddgs (search)
+
+---
+
+## ▶️ USAGE
+
+get API key: https://makersuite.google.com/app/apikey
+
+run:
+
 export GEMINI_API_KEY="<YOUR_API_KEY_HERE>"
 python main.py
-```
 
-You will be prompted to select a mode:
--   **T**: Text Mode (CLI). Type commands silently.
--   **V**: Voice Mode. Speak to Jarvis.
+select mode:
 
-### Example Commands
--   **Search**: *"Search for the latest space news"*
--   **System**: *"What is my battery level?"*, *"Set brightness to 80%"*
--   **Power**: *"Restart the system"* (Agent will ask for confirmation: *"Yes, do it"*)
--   **Apps**: *"Open Spotify"*
--   **Chat**: *"Tell me a joke"*
+* **T** → CLI mode
+* **V** → Voice mode
 
-### Notes
--   **Microphone**: Requires `pyaudio`. If installation fails, install `portaudio` via your package manager (e.g., `brew install portaudio`).
--   **Permissions**: MacOS may prompt for **"System Events"** control permissions on the first run of system commands (like volume/sleep). Allow these for full functionality.
-
-
-### Features that are only supported for macOS and linux : SetVolume
-### Highly recommend ≤ python@v3.11 / ≥ python@3.9.*
 ---
-Built with ❤️ by LilCloudCoder.
+
+## 🧪 COMMAND EXAMPLES
+
+* search → *"latest space news"*
+* system → *"battery level?"* / *"set brightness to 80%"*
+* power → *"restart system"* → confirms before action
+* apps → *"open spotify"*
+* chat → *"tell me a joke"*
+
+---
+
+## ⚠️ NOTES
+
+* microphone requires `pyaudio`
+  → if it fails: install `portaudio` (e.g. `brew install portaudio`)
+
+* macOS permissions may be needed
+  → allow system control access for full functionality
+
+* volume control → macOS + Linux only
+
+* recommended Python:
+  **3.9 ≤ version ≤ 3.11**
+
+---
+
+> FAHHST = fast. local. under your control.
